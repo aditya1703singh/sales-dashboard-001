@@ -1,91 +1,239 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sales Summary</title>
+  <title>Sales Dashboard</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    :root { color-scheme: light dark; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; }
-    .app { max-width: 800px; margin: 0 auto; }
-    h1 { margin: 0 0 1rem; font-weight: 600; }
-    .card { border: 1px solid rgba(0,0,0,.1); border-radius: 12px; padding: 1rem; background: rgba(255,255,255,.6); backdrop-filter: blur(6px); }
-    #total-sales { font-size: 2rem; font-weight: 700; letter-spacing: .3px; }
-    .muted { color: #666; font-size: .9rem; margin-top: .5rem; }
-    @media (prefers-color-scheme: dark) {
-      .card { background: rgba(0,0,0,.3); border-color: rgba(255,255,255,.12); }
-      .muted { color: #aaa; }
-    }
+    body { background: #f8f9fa; }
+    .totals-card { position: sticky; top: 0; z-index: 10; }
+    .muted { color: #6c757d; }
+    footer { margin-top: 3rem; font-size: 0.9rem; color: #6c757d; }
+    .spinner { width: 1rem; height: 1rem; border: 0.15em solid #ddd; border-top-color: #0d6efd; border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg);} }
   </style>
 </head>
 <body>
-  <div class="app">
-    <h1>Sales Summary</h1>
-    <div class="card" role="group" aria-labelledby="summary-label">
-      <div id="summary-label" class="muted">Total Sales</div>
-      <div id="total-sales" aria-live="polite">Loading…</div>
-      <div class="muted">Source: data.csv</div>
+  <nav class="navbar navbar-expand-lg bg-dark navbar-dark mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="#">Sales Dashboard</a>
+      <div class="ms-auto d-flex gap-2">
+        <div class="input-group input-group-sm">
+          <label class="input-group-text" for="region-filter">Region</label>
+          <select class="form-select" id="region-filter" aria-label="Filter by region">
+            <option value="All" selected>All</option>
+            <option value="Americas">Americas</option>
+            <option value="EMEA">EMEA</option>
+            <option value="APAC">APAC</option>
+          </select>
+        </div>
+        <div class="input-group input-group-sm">
+          <label class="input-group-text" for="currency-picker">Currency</label>
+          <select class="form-select" id="currency-picker" aria-label="Select currency">
+            <option value="USD" selected>USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="IN">INR (₹)</option>
+          </select>
+        </div>
+      </div>
     </div>
-  </div>
+  </nav>
+
+  <main class="container">
+    <div class="card totals-card shadow-sm mb-4">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <h5 class="card-title mb-0">Total Sales</h5>
+          <small class="text-muted">Updated by region and currency</small>
+        </div>
+        <div class="display-6" id="total-sales" data-region="All" aria-live="polite">
+          <span class="spinner" id="total-spinner" title="Loading…"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header bg-white">
+        <strong>Product Sales</strong>
+        <span class="muted" id="table-context"> • All regions</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0" id="product-sales">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Product</th>
+              <th scope="col">Unit Price</th>
+              <th scope="col" id="units-header">Units Sold</th>
+              <th scope="col" class="text-end">Revenue</th>
+            </tr>
+          </thead>
+          <tbody id="product-body">
+            <!-- Rows injected by JS -->
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <th colspan="3" class="text-end">Grand Total</th>
+              <th class="text-end" id="grand-total">—</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <footer class="mt-4">
+      <p class="mb-1">© 2025 Sales Dashboard</p>
+      <details>
+        <summary>MIT License</summary>
+        <pre style="white-space: pre-wrap; background:#fff; padding:1rem; border:1px solid #e9ecef; border-radius:.25rem; margin-top:.5rem;">MIT License
+
+Copyright (c) 2025 Sales Dashboard Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</pre>
+      </details>
+    </footer>
+  </main>
 
   <script>
-    // Ensure document.title matches "Sales Summary ${seed}" when seed is available.
-    (function ensureTitle() {
-      function setTitleIfPossible() {
-        const qsSeed = new URLSearchParams(location.search).get('seed');
-        const s = (typeof window.seed !== 'undefined' && window.seed !== null) ? window.seed : (qsSeed ?? '');
-        if (s !== '') {
-          document.title = `Sales Summary ${s}`;
-          return true;
-        }
-        return false;
-      }
-      if (!setTitleIfPossible()) {
-        const id = setInterval(() => {
-          if (setTitleIfPossible()) clearInterval(id);
-        }, 100);
-        // Stop trying after 5 seconds
-        setTimeout(() => clearInterval(id), 5000);
-      }
-    })();
+    // Static product catalog with USD base prices and regional units
+    const products = [
+      { id: 1, name: 'Alpha Suite', priceUSD: 49.99, units: { Americas: 120, EMEA: 80, APAC: 60 } },
+      { id: 2, name: 'Beta Pro',   priceUSD: 79.00, units: { Americas: 90,  EMEA: 110, APAC: 45 } },
+      { id: 3, name: 'Gamma Lite', priceUSD: 29.50, units: { Americas: 200, EMEA: 150, APAC: 220 } },
+      { id: 4, name: 'Delta Max',  priceUSD: 199.0, units: { Americas: 40,  EMEA: 30,  APAC: 25 } },
+    ];
 
-    async function fetchCSV(url) {
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
-      return res.text();
+    // Currency rate data (USD base). Will be replaced by rates.json if available.
+    let rates = { USD: 1.0, EUR: 0.95, IN: 83.5 };
+
+    // Map rates keys to proper ISO currency codes and symbols for formatting
+    const currencyFormatMap = {
+      USD: { iso: 'USD', symbol: '$', label: 'USD ($)' },
+      EUR: { iso: 'EUR', symbol: '€', label: 'EUR (€)' },
+      IN:  { iso: 'INR', symbol: '₹', label: 'INR (₹)' },
+    };
+
+    const els = {
+      region: document.getElementById('region-filter'),
+      currency: document.getElementById('currency-picker'),
+      tableBody: document.getElementById('product-body'),
+      grandTotal: document.getElementById('grand-total'),
+      totalSales: document.getElementById('total-sales'),
+      unitsHeader: document.getElementById('units-header'),
+      tableContext: document.getElementById('table-context'),
+      totalSpinner: document.getElementById('total-spinner'),
+    };
+
+    function sumUnits(unitsObj) {
+      return Object.values(unitsObj).reduce((a, b) => a + b, 0);
     }
 
-    function parseAndSumSales(csvText) {
-      // Basic CSV handling for simple, comma-delimited data with a header row.
-      const lines = csvText.trim().split(/\r?\n/).filter(l => l.trim() !== '');
-      if (lines.length === 0) return 0;
-
-      const header = lines[0].split(',').map(h => h.trim());
-      const salesIdx = header.findIndex(h => /^sales$/i.test(h));
-      if (salesIdx === -1) throw new Error('Sales column not found');
-
-      let total = 0;
-      for (let i = 1; i < lines.length; i++) {
-        // Very simple split for this dataset; not a full CSV parser.
-        const cells = lines[i].split(',');
-        const raw = (cells[salesIdx] ?? '').trim();
-        const num = parseFloat(raw.replace(/[^0-9.\-eE]/g, ''));
-        if (!Number.isNaN(num)) total += num;
-      }
-      return total;
-    }
-
-    (async function main() {
-      const target = document.getElementById('total-sales');
+    function formatCurrency(amount, code) {
+      const fmt = currencyFormatMap[code] || currencyFormatMap['USD'];
       try {
-        const csv = await fetchCSV('data.csv');
-        const total = parseAndSumSales(csv);
-        // Display as plain number to satisfy evaluation check
-        target.textContent = String(total);
-      } catch (err) {
-        console.error(err);
-        target.textContent = 'Error loading data';
+        return new Intl.NumberFormat(undefined, { style: 'currency', currency: fmt.iso, maximumFractionDigits: 2 }).format(amount);
+      } catch {
+        // Fallback simple formatting
+        return fmt.symbol + amount.toFixed(2);
       }
+    }
+
+    function ensureCurrencyOptions() {
+      // Build options from available rates
+      const current = els.currency.value || 'USD';
+      els.currency.innerHTML = '';
+      Object.keys(rates).forEach(code => {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = currencyFormatMap[code]?.label || code;
+        if (code === current) opt.selected = true;
+        els.currency.appendChild(opt);
+      });
+    }
+
+    function computeAndRender() {
+      const region = els.region.value || 'All';
+      const currency = els.currency.value || 'USD';
+      const rate = rates[currency] ?? 1.0;
+
+      // Update contextual labels
+      els.unitsHeader.textContent = region === 'All' ? 'Units Sold (All Regions)' : `Units Sold (${region})`;
+      els.tableContext.textContent = region === 'All' ? ' • All regions' : ` • Region: ${region}`;
+
+      // Clear table
+      els.tableBody.innerHTML = '';
+
+      let grandTotalUSD = 0;
+
+      products.forEach(p => {
+        const units = region === 'All' ? sumUnits(p.units) : (p.units[region] || 0);
+        const priceUSD = p.priceUSD;
+        const revenueUSD = priceUSD * units;
+        grandTotalUSD += revenueUSD;
+
+        const priceDisplay = priceUSD * rate;
+        const revenueDisplay = revenueUSD * rate;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.name}</td>
+          <td>${formatCurrency(priceDisplay, currency)}</td>
+          <td>${units.toLocaleString()}</td>
+          <td class="text-end">${formatCurrency(revenueDisplay, currency)}</td>
+        `;
+        els.tableBody.appendChild(tr);
+      });
+
+      const grandDisplay = grandTotalUSD * rate;
+      els.grandTotal.textContent = formatCurrency(grandDisplay, currency);
+
+      // Top summary
+      els.totalSales.textContent = formatCurrency(grandDisplay, currency);
+      els.totalSales.setAttribute('data-region', region);
+      els.totalSpinner?.remove();
+    }
+
+    async function loadRates() {
+      try {
+        const res = await fetch('rates.json', { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          // Basic validation
+          if (json && typeof json === 'object') {
+            rates = json;
+          }
+        }
+      } catch (e) {
+        // Use fallback 'rates' silently
+      }
+    }
+
+    function bindEvents() {
+      els.region.addEventListener('change', computeAndRender);
+      els.currency.addEventListener('change', computeAndRender);
+    }
+
+    (async function init() {
+      bindEvents();
+      await loadRates();
+      ensureCurrencyOptions();
+      computeAndRender();
     })();
   </script>
 </body>
